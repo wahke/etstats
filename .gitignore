@@ -1,2 +1,2 @@
-sql/install.sql
+# Ignore all files in the docs directory except for the structure.md file
 structure.md
