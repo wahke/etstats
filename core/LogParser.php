@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/Database.php';
@@ -20,11 +19,17 @@ class LogParser
 
         $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         $parsedLines = 0;
+        $currentMap = 'unknown';
 
         foreach ($lines as $line) {
             $parsedLines++;
 
-            // Beispielzeile: 0:23 Kill: 5 2 3: PlayerA killed PlayerB by MOD_MP40
+            // Map-Erkennung (InitGame Zeile z. B. aus ET-Log)
+            if (preg_match('/InitGame: .*\\\\mapname\\\\([^\\\\]+)/', $line, $match)) {
+    $currentMap = $match[1];
+}
+
+            // Kill-Zeile parsen
             if (preg_match('/Kill: \d+ \d+ \d+: (.+) killed (.+) by (.+)/', $line, $matches)) {
                 $killerName = $this->sanitizeName($matches[1]);
                 $victimName = $this->sanitizeName($matches[2]);
@@ -33,11 +38,9 @@ class LogParser
                 $killerId = $this->findOrCreatePlayer($killerName);
                 $victimId = $this->findOrCreatePlayer($victimName);
 
-                $this->storeKill($killerId, $victimId, $weapon);
+                $this->storeKill($killerId, $victimId, $weapon, $currentMap);
                 $this->updateWeaponStats($weapon);
             }
-
-            // TODO: Weitere Events (Join, MapStart, MapEnd) erkennen
         }
 
         return $parsedLines;
@@ -66,9 +69,8 @@ class LogParser
         return $stmt->insert_id;
     }
 
-    private function storeKill($killerId, $victimId, $weapon)
+    private function storeKill($killerId, $victimId, $weapon, $map)
     {
-        $map = 'unknown'; // Später dynamisch setzen
         $time = date('Y-m-d H:i:s');
 
         $stmt = $this->conn->prepare("

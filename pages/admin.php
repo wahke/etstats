@@ -1,6 +1,13 @@
 <?php
+session_start();
 require_once '../core/Database.php';
 require_once '../core/Helpers.php';
+
+// Zugriffsschutz: Wenn kein Login vorhanden, weiterleiten
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header('Location: admin_login.php');
+    exit;
+}
 
 $db = Database::getInstance()->getConnection();
 $success = false;
@@ -29,6 +36,8 @@ function setting($key) {
 
 <div class="container mt-5">
     <h1>Adminbereich – Servereinstellungen</h1>
+
+    <p><a href="logout.php" class="btn btn-sm btn-outline-danger float-end">Logout</a></p>
 
     <?php if ($success): ?>
         <div class="alert alert-success">Einstellungen gespeichert.</div>

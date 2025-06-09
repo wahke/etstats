@@ -69,6 +69,7 @@ CREATE TABLE session_players (
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 );
 
+
 -- Serverstatus
 CREATE TABLE server_status (
     id INT AUTO_INCREMENT PRIMARY KEY,
