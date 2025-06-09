@@ -2,7 +2,9 @@
 <?php
 // Sprachdatei laden (Standard: de)
 $lang = include __DIR__ . '/../lang/de.php';
-$version = require __DIR__ . '/../config/version.php'
+$versionFile = __DIR__ . '/../config/version.txt';
+$version = file_exists($versionFile) ? trim(file_get_contents($versionFile)) : 'dev';
+
 ?>
 
 <!DOCTYPE html>
