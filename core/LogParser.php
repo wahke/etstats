@@ -17,16 +17,25 @@ class LogParser
             throw new Exception("Logdatei nicht gefunden: " . $filePath);
         }
 
-        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            throw new Exception("Konnte Logdatei nicht öffnen: " . $filePath);
+        }
+
         $parsedLines = 0;
         $currentMap = 'unknown';
 
-        foreach ($lines as $line) {
+        while (($line = fgets($handle)) !== false) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+
             $parsedLines++;
 
-            // Map-Erkennung (InitGame Zeile)
+            // Map-Erkennung (InitGame-Zeile)
             if (preg_match('/InitGame: .*\\\\mapname\\\\([^\\\\]+)/', $line, $match)) {
-                 $currentMap = $match[1];
+                $currentMap = $match[1];
                 $this->updateMapStats($currentMap);
             }
 
@@ -45,6 +54,7 @@ class LogParser
             }
         }
 
+        fclose($handle);
         return $parsedLines;
     }
 
@@ -60,6 +70,7 @@ class LogParser
         $stmt->execute();
         $stmt->bind_result($id);
         if ($stmt->fetch()) {
+            $stmt->close();
             return $id;
         }
         $stmt->close();
@@ -68,7 +79,9 @@ class LogParser
         $stmt = $this->conn->prepare("INSERT INTO players (name, first_seen, last_seen) VALUES (?, NOW(), NOW())");
         $stmt->bind_param("s", $name);
         $stmt->execute();
-        return $stmt->insert_id;
+        $insertId = $stmt->insert_id;
+        $stmt->close();
+        return $insertId;
     }
 
     private function storeKill($killerId, $victimId, $weapon, $map)
@@ -81,8 +94,8 @@ class LogParser
         ");
         $stmt->bind_param("iisss", $killerId, $victimId, $weapon, $map, $time);
         $stmt->execute();
+        $stmt->close();
 
-        // Spielerstatistiken aktualisieren
         $this->conn->query("UPDATE players SET total_kills = total_kills + 1, last_seen = NOW() WHERE id = $killerId");
         $this->conn->query("UPDATE players SET total_deaths = total_deaths + 1, last_seen = NOW() WHERE id = $victimId");
     }
@@ -95,6 +108,7 @@ class LogParser
         ");
         $stmt->bind_param("s", $weapon);
         $stmt->execute();
+        $stmt->close();
     }
 
     private function updateMapStats($mapName)
@@ -106,10 +120,17 @@ class LogParser
         ");
         $stmt->bind_param("s", $mapName);
         $stmt->execute();
+        $stmt->close();
     }
 
     private function updateMapKills($mapName)
     {
-        $this->conn->query("UPDATE maps SET total_kills = total_kills + 1, total_deaths = total_deaths + 1 WHERE name = '" . $this->conn->real_escape_string($mapName) . "'");
+        $escapedMap = $this->conn->real_escape_string($mapName);
+        $this->conn->query("
+            UPDATE maps
+            SET total_kills = total_kills + 1,
+                total_deaths = total_deaths + 1
+            WHERE name = '$escapedMap'
+        ");
     }
 }
