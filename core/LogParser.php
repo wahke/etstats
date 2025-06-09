@@ -24,10 +24,11 @@ class LogParser
         foreach ($lines as $line) {
             $parsedLines++;
 
-            // Map-Erkennung (InitGame Zeile z. B. aus ET-Log)
+            // Map-Erkennung (InitGame Zeile)
             if (preg_match('/InitGame: .*\\\\mapname\\\\([^\\\\]+)/', $line, $match)) {
-    $currentMap = $match[1];
-}
+                 $currentMap = $match[1];
+                $this->updateMapStats($currentMap);
+            }
 
             // Kill-Zeile parsen
             if (preg_match('/Kill: \d+ \d+ \d+: (.+) killed (.+) by (.+)/', $line, $matches)) {
@@ -40,6 +41,7 @@ class LogParser
 
                 $this->storeKill($killerId, $victimId, $weapon, $currentMap);
                 $this->updateWeaponStats($weapon);
+                $this->updateMapKills($currentMap);
             }
         }
 
@@ -93,5 +95,21 @@ class LogParser
         ");
         $stmt->bind_param("s", $weapon);
         $stmt->execute();
+    }
+
+    private function updateMapStats($mapName)
+    {
+        $stmt = $this->conn->prepare("
+            INSERT INTO maps (name, times_played, total_kills, total_deaths)
+            VALUES (?, 1, 0, 0)
+            ON DUPLICATE KEY UPDATE times_played = times_played + 1
+        ");
+        $stmt->bind_param("s", $mapName);
+        $stmt->execute();
+    }
+
+    private function updateMapKills($mapName)
+    {
+        $this->conn->query("UPDATE maps SET total_kills = total_kills + 1, total_deaths = total_deaths + 1 WHERE name = '" . $this->conn->real_escape_string($mapName) . "'");
     }
 }
