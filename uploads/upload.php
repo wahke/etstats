@@ -16,8 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['logfile'])) {
             $parser = new LogParser();
             $lines = $parser->parseLogFile($targetPath);
             $message = "<div class='alert alert-success'>Datei erfolgreich verarbeitet ({$lines} Zeilen).</div>";
-        } catch (Exception \$e) {
-            $message = "<div class='alert alert-danger'>Fehler beim Parsen: " . htmlspecialchars(\$e->getMessage()) . "</div>";
+        } catch (Exception $e) {
+            $message = "<div class='alert alert-danger'>Fehler beim Parsen: " . htmlspecialchars($e->getMessage()) . "</div>";
         }
     } else {
         $message = "<div class='alert alert-danger'>Fehler beim Hochladen der Datei.</div>";
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['logfile'])) {
 
 <div class="container mt-5">
     <h1>Logdatei hochladen</h1>
-    <?= \$message ?>
+    <?= $message ?>
     <form method="post" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="logfile" class="form-label">ET Log-Datei (.log)</label>
